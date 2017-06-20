@@ -307,11 +307,51 @@ public class Volume {
         return Paths.get(s);
     }
     
+    /*
+     * ---------------------TO STRINGs------------------------------------------
+     */
+    
     public String nestedArrayPartToString(byte[][] ary, int deepness) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < deepness; i++) {
             sb.append(i).append(". ").append(Arrays.toString(ary[i])).append("\n");
         }
         return sb.toString();
+    }
+    
+    /*
+     * ---------------------GETTER & SETTER-------------------------------------
+     */
+    
+    public Map<String, ITriangleMesh[]> getTriangleMeshes() {
+        return triangleMeshes;
+    }
+    
+    public void setTriangleMeshes(Map<String, ITriangleMesh[]> triangleMeshes) {
+        this.triangleMeshes = triangleMeshes;
+    }
+    
+    public Map<String, List<Vector>> getCenters() {
+        return centers;
+    }
+    
+    public void setCenters(Map<String, List<Vector>> centers) {
+        this.centers = centers;
+    }
+    
+    public Map<String, List<Integer>> getCenterIndices() {
+        return centerIndices;
+    }
+    
+    public void setCenterIndices(Map<String, List<Integer>> centerIndices) {
+        this.centerIndices = centerIndices;
+    }
+    
+    public Map<String, List<Integer>> getSortedCenterIndices() {
+        return sortedCenterIndices;
+    }
+    
+    public void setSortedCenterIndices(Map<String, List<Integer>> sortedCenterIndices) {
+        this.sortedCenterIndices = sortedCenterIndices;
     }
 }
