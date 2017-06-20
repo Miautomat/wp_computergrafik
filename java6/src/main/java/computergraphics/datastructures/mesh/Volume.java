@@ -74,7 +74,7 @@ public class Volume {
      */
     
     private void setupTextureStack(GL2 gl, String axis, int resA, int resB) {
-        colors.put("x", createColorArray(axis, resA, resB, resolution.get(axis)));
+        colors.put(axis, createColorArray(axis, resolution.get(axis), resA, resB));
         
         ITriangleMesh[] triangleMeshAry = createTriangleMesh(axis, resolution.get(axis),
             centers.get(axis), centerIndices.get(axis));
@@ -87,32 +87,39 @@ public class Volume {
             centerIndices.get(axis)));
     }
     
-    private byte[][] createColorArray(String axis, int resA, int resB, int stackAxis) {
+    private byte[][] createColorArray(String axis, int stackAxis, int resA, int resB) {
         
-        // TODO ist hier alles richtig???
         int arySize = resA * resB * 4;
         byte[][] bAry = new byte[stackAxis][arySize];
+        int accu = 0;
         
         // for each plane
         for (int i = 0; i < stackAxis; i++) {
             for (int a = 0; a < resA; a++) {
                 for (int b = 0; b < resB; b++) {
                     // calculate color for each point within the plane
+                    byte[] colors = new byte[4];
+                    // ugly :(
                     switch (axis) {
                     case "x":
-                        bAry[i] = calcColor(i, a, b);
+                        colors = calcColor(i, a, b);
                         break;
                     case "y":
-                        bAry[i] = calcColor(a, i, b);
+                        colors = calcColor(a, i, b);
                         break;
                     case "z":
-                        bAry[i] = calcColor(a, b, i);
+                        colors = calcColor(a, b, i);
                         break;
                     }
+                    bAry[i][accu] = colors[0];
+                    bAry[i][accu + 1] = colors[1];
+                    bAry[i][accu + 2] = colors[2];
+                    bAry[i][accu + 3] = colors[3];
+                    accu += 4;
                 }
             }
+            accu = 0;
         }
-        System.out.println(nestedArrayPartToString(bAry, 5));
         return bAry;
     }
     
@@ -173,7 +180,6 @@ public class Volume {
         // creation and binding
         for (int i = 0; i < resAxis; i++) {
             ByteBuffer buffer = ByteBuffer.allocateDirect(resA * resB * 4);
-            System.out.println("colors " + i + " ary: " + Arrays.toString(colors[i]));
             buffer.put(colors[i]);
             buffer.position(0);
             
