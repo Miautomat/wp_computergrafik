@@ -109,7 +109,6 @@ public class TriangleMesh implements ITriangleMesh {
     @Override
     public void addTextureCoordinate(Vector t) {
         tcords.add(t);
-        
     }
     
     @Override

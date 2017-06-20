@@ -1,12 +1,16 @@
 package computergraphics.datastructures.mesh;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.jogamp.opengl.GL2;
 
 import computergraphics.datastructures.bsp.BspTreeNode;
 import computergraphics.datastructures.bsp.BspTreeToolsDummy;
@@ -20,13 +24,10 @@ public class Volume {
     // BSP-Tree for back-to-front-Sorting
     private BspTreeToolsDummy bspTool;
     private Map<String, BspTreeNode> rootNodes = new HashMap<>();
-    // Centre Points of planes per Axis for back-to-front-sorting
-    private Map<String, List<Vector>> centres = new HashMap<>();
-    private Map<String, List<Integer>> centreIndices = new HashMap<>();
-    private Map<String, List<Integer>> sortedCentreIndices = new HashMap<>();
-    // needed in generateTexturesPerAxis(String axis) - better solution would be
-    // appreciated
-    private int texId = 0;
+    // Center Points of planes per Axis for back-to-front-sorting
+    private Map<String, List<Vector>> centers = new HashMap<>();
+    private Map<String, List<Integer>> centerIndices = new HashMap<>();
+    private Map<String, List<Integer>> sortedCenterIndices = new HashMap<>();
     // byteArray from raw-File
     private byte[] model;
     // Textures per Axis
@@ -38,10 +39,10 @@ public class Volume {
     
     private Vector eye;
     
-    public Volume(String modelString, Vector eye) throws IOException {
+    public Volume(String modelString, GL2 gl, Vector eye) throws IOException {
         this.eye = eye;
         model = Files.readAllBytes(setModel(modelString));
-        generateTexturePlanes();
+        generateTexturePlanes(gl);
     }
     
     /**
@@ -58,35 +59,61 @@ public class Volume {
         return bspTool.getBackToFront(rootNode, points, eye);
     }
     
-    private void generateTexturePlanes() {
+    private void generateTexturePlanes(GL2 gl) {
         // stack Axis: X
-        textures.put("x", generateTexturesPerAxis(resolution.get("x")));
         colors.put("x", generateColorByteArrays("x", resolution.get("y"), resolution.get("z"),
             resolution.get("x")));
         triangleMeshes.put("x", generateTriangleMeshPerAxis("x", resolution.get("x"),
-            centres.get("x"), centreIndices.get("x")));
-        rootNodes.put("x", bspTool.createBspTree(null, centres.get("x"), centreIndices.get("x")));
+            centers.get("x"), centerIndices.get("x")));
+        textures.put("x", generateAndBindTexturesPerAxis(gl, resolution.get("x"),
+            resolution.get("y"), resolution.get("z"),
+            triangleMeshes.get("x"), colors.get("x")));
+        rootNodes.put("x", bspTool.createBspTree(null, centers.get("x"), centerIndices.get("x")));
+        
         // stack Axis: Y
-        textures.put("y", generateTexturesPerAxis(resolution.get("y")));
         colors.put("y", generateColorByteArrays("y", resolution.get("x"), resolution.get("z"),
             resolution.get("y")));
         triangleMeshes.put("y", generateTriangleMeshPerAxis("y", resolution.get("y"),
-            centres.get("y"), centreIndices.get("y")));
-        rootNodes.put("y", bspTool.createBspTree(null, centres.get("y"), centreIndices.get("y")));
+            centers.get("y"), centerIndices.get("y")));
+        textures.put("y", generateAndBindTexturesPerAxis(gl, resolution.get("y"),
+            resolution.get("x"), resolution.get("z"),
+            triangleMeshes.get("y"), colors.get("y")));
+        rootNodes.put("y", bspTool.createBspTree(null, centers.get("y"), centerIndices.get("y")));
+        
         // stack Axis: Z
-        textures.put("z", generateTexturesPerAxis(resolution.get("z")));
         colors.put("z", generateColorByteArrays("z", resolution.get("x"), resolution.get("y"),
             resolution.get("z")));
         triangleMeshes.put("z", generateTriangleMeshPerAxis("z", resolution.get("z"),
-            centres.get("z"), centreIndices.get("z")));
-        rootNodes.put("z", bspTool.createBspTree(null, centres.get("z"), centreIndices.get("z")));
+            centers.get("z"), centerIndices.get("z")));
+        textures.put("z", generateAndBindTexturesPerAxis(gl, resolution.get("z"),
+            resolution.get("x"), resolution.get("y"),
+            triangleMeshes.get("z"), colors.get("z")));
+        rootNodes.put("z", bspTool.createBspTree(null, centers.get("z"), centerIndices.get("z")));
     }
     
-    private Texture[] generateTexturesPerAxis(int res) {
-        Texture[] t = new Texture[res];
-        for (int i = 0; i <= res; i++) {
-            t[i] = new Texture(texId);
-            texId++;
+    private Texture[] generateAndBindTexturesPerAxis(GL2 gl, int resAxis, int resA, int resB,
+        ITriangleMesh[] triangleMeshes, byte[][] colors) {
+        Texture[] t = new Texture[resAxis];
+        
+        int[] intary = new int[resAxis];
+        IntBuffer intbuf = IntBuffer.wrap(intary);
+        gl.glGenTextures(resAxis, intbuf);
+        
+        for (int i = 0; i <= resAxis; i++) {
+            ByteBuffer buffer = ByteBuffer.allocateDirect(resA * resB * 4);
+            buffer.put(colors[i]);
+            buffer.position(0);
+            
+            gl.glEnable(GL2.GL_TEXTURE_2D);
+            gl.glBindTexture(GL2.GL_TEXTURE_2D, intbuf.get(i));
+            gl.glTexParameteri(GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_WRAP_S, GL2.GL_REPEAT);
+            gl.glTexParameteri(GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_WRAP_T, GL2.GL_REPEAT);
+            gl.glTexParameteri(GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_MIN_FILTER, GL2.GL_LINEAR);
+            gl.glTexParameteri(GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_MAG_FILTER, GL2.GL_LINEAR);
+            gl.glTexImage2D(GL2.GL_TEXTURE_2D, 0, GL2.GL_RGBA, 256, 256, 0, GL2.GL_RGBA,
+                GL2.GL_BYTE, buffer);
+            t[i] = new Texture(intbuf.get(i));
+            triangleMeshes[i].setTexture(t[i]);
         }
         return t;
     }
@@ -128,7 +155,7 @@ public class Volume {
     
     // see assignment 6 recommendation
     private byte[] calcColor(int x, int y, int z) {
-        return new byte[] {getVolumeData(x, y, z), 0, 0, getVolumeData(x, y, z)};
+        return new byte[] {accessVolumeData(x, y, z), 0, 0, accessVolumeData(x, y, z)};
     }
     
     /**
@@ -142,7 +169,7 @@ public class Volume {
      *            in 0...rZ-1
      * @return volume data as byte
      */
-    public byte getVolumeData(int x, int y, int z) {
+    public byte accessVolumeData(int x, int y, int z) {
         // see assignment6
         return model[z * resolution.get("x") * resolution.get("y") + y + resolution.get("z") + x];
     }
@@ -198,6 +225,12 @@ public class Volume {
             Triangle t1 = new Triangle(2, 1, 0); // [c,b,a]
             Triangle t2 = new Triangle(2, 3, 1); // [c,d,b]
             
+            // add texture coordinates to triangleMesh
+            tM.addTextureCoordinate(new Vector(0, 0, 0));
+            tM.addTextureCoordinate(new Vector(1, 0, 0));
+            tM.addTextureCoordinate(new Vector(1, 1, 0));
+            tM.addTextureCoordinate(new Vector(0, 1, 0));
+            
             tM.addTriangle(t1);
             tM.addTriangle(t2);
         }
@@ -252,11 +285,11 @@ public class Volume {
     }
     
     public Map<String, List<Integer>> getSortedCentreIndices() {
-        return sortedCentreIndices;
+        return sortedCenterIndices;
     }
     
     public void setSortedCentreIndices(Map<String, List<Integer>> sortedCentreIndices) {
-        this.sortedCentreIndices = sortedCentreIndices;
+        this.sortedCenterIndices = sortedCentreIndices;
     }
     
     public Map<String, Texture[]> getTextures() {
