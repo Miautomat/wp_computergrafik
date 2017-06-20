@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import computergraphics.datastructures.bsp.BspTreeNode;
 import computergraphics.datastructures.bsp.BspTreeToolsDummy;
@@ -14,25 +16,25 @@ import computergraphics.rendering.Texture;
 public class Volume {
     
     // TriangleMeshes as Planes per Axis
-    private TriangleMesh[][] triangleMeshes;
+    private Map<String, ITriangleMesh[]> triangleMeshes = new HashMap<>();
     // BSP-Tree for back-to-front-Sorting
     private BspTreeToolsDummy bspTool;
-    private BspTreeNode[] rootNodes;
+    private Map<String, BspTreeNode> rootNodes = new HashMap<>();
     // Centre Points of planes per Axis for back-to-front-sorting
-    private List<Vector>[] centres;
-    private List<Integer>[] centreIndices;
-    private List<Integer>[] sortedCentreIndices;
+    private Map<String, List<Vector>> centres = new HashMap<>();
+    private Map<String, List<Integer>> centreIndices = new HashMap<>();
+    private Map<String, List<Integer>> sortedCentreIndices = new HashMap<>();
     // needed in generateTexturesPerAxis(String axis) - better solution would be
     // appreciated
     private int texId = 0;
     // byteArray from raw-File
     private byte[] model;
     // Textures per Axis
-    private Texture[][] textures;
+    private Map<String, Texture[]> textures = new HashMap<>();
     // color-byte-Arrays per Axis
-    private byte[][][] colors;
+    private Map<String, byte[][]> colors = new HashMap<>();
     // Resolution per Axis
-    private int[] resolution;
+    private Map<String, Integer> resolution = new HashMap<>();
     
     private Vector eye;
     
@@ -58,23 +60,26 @@ public class Volume {
     
     private void generateTexturePlanes() {
         // stack Axis: X
-        textures[0] = generateTexturesPerAxis(resolution[0]);
-        colors[0] = generateColorByteArrays("x", resolution[1], resolution[2], resolution[0]);
-        triangleMeshes[0] = (TriangleMesh[]) generateTriangleMeshPerAxis("x", resolution[0],
-            centres[0], centreIndices[0]);
-        rootNodes[0] = bspTool.createBspTree(null, centres[0], centreIndices[0]);
+        textures.put("x", generateTexturesPerAxis(resolution.get("x")));
+        colors.put("x", generateColorByteArrays("x", resolution.get("y"), resolution.get("z"),
+            resolution.get("x")));
+        triangleMeshes.put("x", generateTriangleMeshPerAxis("x", resolution.get("x"),
+            centres.get("x"), centreIndices.get("x")));
+        rootNodes.put("x", bspTool.createBspTree(null, centres.get("x"), centreIndices.get("x")));
         // stack Axis: Y
-        textures[1] = generateTexturesPerAxis(resolution[1]);
-        colors[1] = generateColorByteArrays("y", resolution[0], resolution[2], resolution[1]);
-        triangleMeshes[1] = (TriangleMesh[]) generateTriangleMeshPerAxis("y", resolution[1],
-            centres[1], centreIndices[1]);
-        rootNodes[1] = bspTool.createBspTree(null, centres[1], centreIndices[1]);
+        textures.put("y", generateTexturesPerAxis(resolution.get("y")));
+        colors.put("y", generateColorByteArrays("y", resolution.get("x"), resolution.get("z"),
+            resolution.get("y")));
+        triangleMeshes.put("y", generateTriangleMeshPerAxis("y", resolution.get("y"),
+            centres.get("y"), centreIndices.get("y")));
+        rootNodes.put("y", bspTool.createBspTree(null, centres.get("y"), centreIndices.get("y")));
         // stack Axis: Z
-        textures[2] = generateTexturesPerAxis(resolution[2]);
-        colors[2] = generateColorByteArrays("z", resolution[0], resolution[1], resolution[2]);
-        triangleMeshes[2] = (TriangleMesh[]) generateTriangleMeshPerAxis("z", resolution[2],
-            centres[2], centreIndices[2]);
-        rootNodes[2] = bspTool.createBspTree(null, centres[2], centreIndices[2]);
+        textures.put("z", generateTexturesPerAxis(resolution.get("z")));
+        colors.put("z", generateColorByteArrays("z", resolution.get("x"), resolution.get("y"),
+            resolution.get("z")));
+        triangleMeshes.put("z", generateTriangleMeshPerAxis("z", resolution.get("z"),
+            centres.get("z"), centreIndices.get("z")));
+        rootNodes.put("z", bspTool.createBspTree(null, centres.get("z"), centreIndices.get("z")));
     }
     
     private Texture[] generateTexturesPerAxis(int res) {
@@ -139,7 +144,7 @@ public class Volume {
      */
     public byte getVolumeData(int x, int y, int z) {
         // see assignment6
-        return model[z * resolution[0] * resolution[1] + y + resolution[0] + x];
+        return model[z * resolution.get("x") * resolution.get("y") + y + resolution.get("z") + x];
     }
     
     /**
@@ -211,54 +216,54 @@ public class Volume {
         String s = "";
         switch (modelString) {
         case "negship":
-            resolution[0] = 64;
-            resolution[1] = 64;
-            resolution[2] = 64;
+            resolution.put("x", 64);
+            resolution.put("y", 64);
+            resolution.put("z", 64);
             s = "assets/volumedata/neghip.vox";
             break;
         case "monkey":
-            resolution[0] = 256;
-            resolution[1] = 256;
-            resolution[2] = 62;
+            resolution.put("x", 256);
+            resolution.put("y", 256);
+            resolution.put("z", 62);
             s = "assets/volumedata/monkey.raw";
             break;
         case "engine":
-            resolution[0] = 256;
-            resolution[1] = 256;
-            resolution[2] = 256;
+            resolution.put("x", 256);
+            resolution.put("y", 256);
+            resolution.put("z", 256);
             s = "assets/volumedata/engine.raw";
             break;
         case "foot":
-            resolution[0] = 256;
-            resolution[1] = 256;
-            resolution[2] = 256;
+            resolution.put("x", 256);
+            resolution.put("y", 256);
+            resolution.put("z", 256);
             s = "assets/volumedata/foot.raw";
             break;
         }
         return Paths.get(s);
     }
     
-    public TriangleMesh[][] getTriangles() {
+    public Map<String, ITriangleMesh[]> getTriangles() {
         return triangleMeshes;
     }
     
-    public void setTriangles(TriangleMesh[][] triangleMeshes) {
+    public void setTriangles(Map<String, ITriangleMesh[]> triangleMeshes) {
         this.triangleMeshes = triangleMeshes;
     }
     
-    public List<Integer>[] getSortedCentreIndices() {
+    public Map<String, List<Integer>> getSortedCentreIndices() {
         return sortedCentreIndices;
     }
     
-    public void setSortedCentreIndices(List<Integer>[] sortedCentreIndices) {
+    public void setSortedCentreIndices(Map<String, List<Integer>> sortedCentreIndices) {
         this.sortedCentreIndices = sortedCentreIndices;
     }
     
-    public Texture[][] getTextures() {
+    public Map<String, Texture[]> getTextures() {
         return textures;
     }
     
-    public void setTextures(Texture[][] textures) {
+    public void setTextures(Map<String, Texture[]> textures) {
         this.textures = textures;
     }
     
