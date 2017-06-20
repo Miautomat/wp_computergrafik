@@ -134,7 +134,7 @@ public class BspTreeToolsDummy {
 			sortedList.add(leaf1);
 			sortedList.add(leaf2);
 		} else if (positive == null || negative == null) {
-			// Case 2: only one child available
+			// Case 2: only negative child available
 			Integer leaf;
 			BspTreeNode bsp;
 			
