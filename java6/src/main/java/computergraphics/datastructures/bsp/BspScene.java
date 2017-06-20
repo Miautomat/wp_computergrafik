@@ -9,6 +9,7 @@ package computergraphics.datastructures.bsp;
 
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.jogamp.opengl.GL2;
@@ -46,15 +47,52 @@ public class BspScene extends Scene {
     gl.glLineWidth(5);
     gl.glPointSize(5);
 
-    // Create data
-    int numberOfPoints = 10;
-    List<Vector> points = new ArrayList<Vector>();
-    List<Integer> pointIndices = new ArrayList<Integer>();
-    for (int i = 0; i < numberOfPoints; i++) {
-      points.add(new Vector((float) (2 * Math.random() - 1), (float) (2 * Math.random() - 1), 0));
-      pointIndices.add(i);
-    }
+		// Create data
+		// Simple two point-BSP
+		// Vector x = new Vector(1.0, 1.0, 0);
+		// Vector y = new Vector(3.0, 3.0, 0);
+		//
+		//// Vector p = new Vector(2.0, 2.0, 0);
+		//// Vector n = new Vector(0.5, 0.5, 0);
+		//
+		// Vector[] pointsAry = { x, y };
+		// Integer[] pointIndicesAry = { 0, 1 };
+		// List<Integer> pointIndices = Arrays.asList(pointIndicesAry);
+		// List<Vector> points = Arrays.asList(pointsAry);
 
+		// Simple 4-Point BSP
+		// Vector a1 = new Vector(1.0, 1.0, 0); // 0
+		// Vector b1 = new Vector(2.0, 2.0, 0); // 1
+		// Vector c1 = new Vector(4.0, 4.0, 0); // 2
+		// Vector d1 = new Vector(5.5, 5.5, 0); // 3
+		//
+		// Vector[] pointsAry = { a1, b1, c1, d1 };
+		// List<Vector> points = Arrays.asList(pointsAry);
+		// Integer[] pointIndicesAry = { 0, 1, 2, 3 };
+		// List<Integer> pointIndices = Arrays.asList(pointIndicesAry);
+
+		// Vector a2 = new Vector(1.0, 1.0, 0);
+		// Vector b2 = new Vector(2.0, 2.0, 0);
+		// Vector c2 = new Vector(1.5, 3.0, 0);
+		// Vector d2 = new Vector(3.0, 4.5, 0);
+		// Vector e2 = new Vector(4.0, 5.5, 0);
+		//
+		// Vector[] ary2 = { a2, b2, c2, d2, e2 };
+		// List<Vector> points2 = Arrays.asList(ary2);
+		// Integer[] aryI2 = { 0, 1, 2, 3, 4 };
+		// List<Integer> pointsIndices2 = Arrays.asList(aryI2);
+    
+		 // Generated BSP
+		 int numberOfPoints = 10;
+		 List<Vector> points = new ArrayList<Vector>();
+		 List<Integer> pointIndices = new ArrayList<Integer>();
+		 for (int i = 0; i < numberOfPoints; i++) {
+		 points.add(new Vector((float) (2 * Math.random() - 1), (float) (2 *
+		 Math.random() - 1), 0));
+		 pointIndices.add(i);
+		 }
+    System.out.println("points: " + points);
+    System.out.println("pointIndices: " + pointIndices);
     // Create tree
     BspTreeToolsDummy tools = new BspTreeToolsDummy();
     BspTreeNode rootNode = tools.createBspTree(null, points, pointIndices);

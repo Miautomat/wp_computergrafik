@@ -2,14 +2,13 @@ package computergraphics.scenegraph;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import com.jogamp.opengl.GL2;
 
-import computergraphics.datastructures.mesh.ITriangleMesh;
 import computergraphics.datastructures.mesh.TriangleMesh;
 import computergraphics.datastructures.mesh.Volume;
 import computergraphics.math.Matrix;
+import computergraphics.math.Vector;
 
 public class VolumeNode extends InnerNode {
     
@@ -21,20 +20,19 @@ public class VolumeNode extends InnerNode {
     private List<INode> childrenY;
     private List<INode> childrenZ;
     
-    public VolumeNode(Volume volume) {
+    public VolumeNode(Volume volume, Vector eye) {
         this.volume = volume;
-        childrenX = createLeafNodes("x");
-        childrenY = createLeafNodes("y");
-        childrenZ = createLeafNodes("z");
+        childrenX = createLeafNodes("x", eye);
+        childrenY = createLeafNodes("y", eye);
+        childrenZ = createLeafNodes("z", eye);
     }
     
-    private List<INode> createLeafNodes(String axis) {
+    private List<INode> createLeafNodes(String axis, Vector eye) {
         ArrayList<INode> nodes = new ArrayList<>();
-        Map<String, ITriangleMesh[]> triangleMeshMap = volume.getTriangleMeshes();
-        ITriangleMesh[] triangleMesh = triangleMeshMap.get(axis);
+        List<TriangleMesh> triangleMeshes = volume.getBackToFrontMeshes(axis, eye);
         
-        for (int i = 0; i < triangleMesh.length; i++) {
-            nodes.add(new TriangleMeshNode((TriangleMesh) triangleMesh[i]));
+        for (TriangleMesh tM : triangleMeshes) {
+            nodes.add(new TriangleMeshNode(tM));
         }
         return nodes;
     }

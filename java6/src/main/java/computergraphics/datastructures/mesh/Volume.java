@@ -42,7 +42,6 @@ public class Volume {
     // Center Points of planes per Axis for back-to-front-sorting
     private Map<String, List<Vector>> centers = new HashMap<>();
     private Map<String, List<Integer>> centerIndices = new HashMap<>();
-    private Map<String, List<Integer>> sortedCenterIndices = new HashMap<>();
     
     /*
      * -----------------------CONSTRUCTOR---------------------------------------
@@ -56,7 +55,6 @@ public class Volume {
         for (int i = 0; i < 3; i++) {
             centers.put(axes[i], new ArrayList<Vector>());
             centerIndices.put(axes[i], new ArrayList<Integer>());
-            sortedCenterIndices.put(axes[i], new ArrayList<Integer>());
             rootNodes.put(axes[i], new BspTreeNode());
         }
         
@@ -69,6 +67,25 @@ public class Volume {
         System.out.println("ende");
     }
     
+    /**
+     * this method should be used to sort the texture-planes backToFront
+     * 
+     * @param axis
+     * @param eye
+     * @return sortedMeshList
+     */
+    public List<TriangleMesh> getBackToFrontMeshes(String axis, Vector eye) {
+        List<TriangleMesh> sortedMeshList = new ArrayList<>();
+        List<Integer> sortedIndices = sortStackBackToFront(rootNodes.get(axis), centers.get(axis),
+            eye);
+        for (int i = 0; i < sortedIndices.size(); i++) {
+            int indice = sortedIndices.get(i);
+            TriangleMesh[] triangleMeshAry = (TriangleMesh[]) triangleMeshes.get(axis);
+            sortedMeshList.add(triangleMeshAry[indice]);
+        }
+        return sortedMeshList;
+    }
+    
     /*
      * ----------------------MAINMETHODS--------------------------------------
      */
@@ -76,8 +93,7 @@ public class Volume {
     private void setupTextureStack(GL2 gl, String axis, int resA, int resB) {
         colors.put(axis, createColorArray(axis, resolution.get(axis), resA, resB));
         
-        ITriangleMesh[] triangleMeshAry = createTriangleMesh(axis, resolution.get(axis),
-            centers.get(axis), centerIndices.get(axis));
+        ITriangleMesh[] triangleMeshAry = createTriangleMesh(axis, resolution.get(axis));
         triangleMeshes.put(axis, triangleMeshAry);
         
         createAndBindTextures(gl, resolution.get(axis), resA, resB,
@@ -132,11 +148,11 @@ public class Volume {
      * @param centreIndices
      * @return
      */
-    private ITriangleMesh[] createTriangleMesh(String axis, int res,
-        List<Vector> centrePoints,
-        List<Integer> centreIndices) {
+    private ITriangleMesh[] createTriangleMesh(String axis, int res) {
         // draft see assets/notes/assignment6_1.JPG
         ITriangleMesh[] tAry = new TriangleMesh[res];
+        List<Vector> centerPoints = new ArrayList<>();
+        List<Integer> centerPointIndices = new ArrayList<>();
         for (int i = 0; i < res; i++) {
             ITriangleMesh tM = new TriangleMesh();
             Vector[] vectors = createVectorVertices(axis, res, i);
@@ -145,8 +161,8 @@ public class Volume {
             // a + ((d - a) * 0.5) --> connection-vector from a to d cut by a
             // half
             Vector centre = vectors[0].add((vectors[3].subtract(vectors[0])).multiply(0.5));
-            centrePoints.add(centre);
-            centreIndices.add(i);
+            centerPoints.add(centre);
+            centerPointIndices.add(i);
             
             // Add Triangles and Vertices to TriangleMesh
             // addVertices not tested!
@@ -166,6 +182,8 @@ public class Volume {
             
             tAry[i] = tM;
         }
+        centers.put(axis, centerPoints);
+        centerIndices.put(axis, centerPointIndices);
         return tAry;
     }
     
@@ -263,7 +281,7 @@ public class Volume {
      * @param eye
      * @return
      */
-    public List<Integer> sortStackBackToFront(BspTreeNode rootNode, List<Vector> points,
+    private List<Integer> sortStackBackToFront(BspTreeNode rootNode, List<Vector> points,
         Vector eye) {
         return bspTool.getBackToFront(rootNode, points, eye);
     }
@@ -345,13 +363,5 @@ public class Volume {
     
     public void setCenterIndices(Map<String, List<Integer>> centerIndices) {
         this.centerIndices = centerIndices;
-    }
-    
-    public Map<String, List<Integer>> getSortedCenterIndices() {
-        return sortedCenterIndices;
-    }
-    
-    public void setSortedCenterIndices(Map<String, List<Integer>> sortedCenterIndices) {
-        this.sortedCenterIndices = sortedCenterIndices;
     }
 }
