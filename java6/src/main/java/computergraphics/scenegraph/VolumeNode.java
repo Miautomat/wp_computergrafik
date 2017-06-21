@@ -1,6 +1,8 @@
 package computergraphics.scenegraph;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import com.jogamp.opengl.GL2;
@@ -27,14 +29,59 @@ public class VolumeNode extends InnerNode {
         childrenZ = createLeafNodes("z", eye);
     }
     
+    /**
+     * this method creates the leafNodes with triangleMeshes for traversing
+     * 
+     * @param axis
+     * @param eye
+     * @return
+     */
     private List<INode> createLeafNodes(String axis, Vector eye) {
         ArrayList<INode> nodes = new ArrayList<>();
-        List<TriangleMesh> triangleMeshes = volume.getBackToFrontMeshes(axis, eye);
+        List<TriangleMesh> triangleMeshes = getMeshInOrder(axis, eye);
         
         for (TriangleMesh tM : triangleMeshes) {
             nodes.add(new TriangleMeshNode(tM));
         }
         return nodes;
+    }
+    
+    /**
+     * this method returns an ordered list of the textureStack according to the
+     * position of the eye.
+     * 
+     * @param axis
+     * @param eye
+     * @return
+     */
+    private List<TriangleMesh> getMeshInOrder(String axis, Vector eye) {
+        List<TriangleMesh> orderedTriangleMeshes = new ArrayList<>();
+        // TODO back to front / front to back?
+        List<Vector> centers = volume.getCenters().get(axis);
+        List<TriangleMesh> meshes = Arrays.asList(volume.getTriangleMeshes().get(axis));
+        
+        // build connection vectors with first and last plane
+        Vector first = centers.get(0);
+        Vector last = centers.get(centers.size() - 1);
+        Vector eyeFirst = first.subtract(eye);
+        Vector eyeLast = last.subtract(eye);
+        // calculate length of both vectors and compare
+        // squared root (x^2 + y^2 + z^2)
+        double lengthEyeFirst = Math.sqrt(
+            Math.pow(eyeFirst.x(), 2) + Math.pow(eyeFirst.y(), 2) + Math.pow(eyeFirst.z(), 2));
+        double lengthEyeLast = Math
+            .sqrt(Math.pow(eyeLast.x(), 2) + Math.pow(eyeLast.y(), 2) + Math.pow(eyeLast.z(), 2));
+        if (lengthEyeFirst - lengthEyeLast < 0) {
+            // first Plane is nearer to eye than last
+            // --> last plane has to be computed first
+            Collections.reverse(meshes);
+            orderedTriangleMeshes = meshes;
+        } else {
+            // last Plane is nearer to eye than first
+            // --> first has to be computed first
+            orderedTriangleMeshes = meshes;
+        }
+        return orderedTriangleMeshes;
     }
     
     @Override

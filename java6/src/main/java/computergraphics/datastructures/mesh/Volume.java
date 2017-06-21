@@ -14,8 +14,6 @@ import java.util.Map;
 
 import com.jogamp.opengl.GL2;
 
-import computergraphics.datastructures.bsp.BspTreeNode;
-import computergraphics.datastructures.bsp.BspTreeToolsDummy;
 import computergraphics.math.Vector;
 import computergraphics.rendering.Texture;
 
@@ -34,14 +32,9 @@ public class Volume {
     // TODO wird nicht mit TriangleMesh "verbunden" - wozu hier speichern?
     private Map<String, byte[][]> colors = new HashMap<>();
     // TriangleMeshes as Planes per Axis
-    private Map<String, ITriangleMesh[]> triangleMeshes = new HashMap<>();
-    
-    // BSP-Tree for back-to-front-Sorting
-    private BspTreeToolsDummy bspTool = new BspTreeToolsDummy();
-    private Map<String, BspTreeNode> rootNodes = new HashMap<>();
-    // Center Points of planes per Axis for back-to-front-sorting
+    private Map<String, TriangleMesh[]> triangleMeshes = new HashMap<>();
+    // Center Points of planes per Axis - direction: 1-n
     private Map<String, List<Vector>> centers = new HashMap<>();
-    private Map<String, List<Integer>> centerIndices = new HashMap<>();
     
     /*
      * -----------------------CONSTRUCTOR---------------------------------------
@@ -54,8 +47,6 @@ public class Volume {
         String[] axes = new String[] {"x", "y", "z"};
         for (int i = 0; i < 3; i++) {
             centers.put(axes[i], new ArrayList<Vector>());
-            centerIndices.put(axes[i], new ArrayList<Integer>());
-            rootNodes.put(axes[i], new BspTreeNode());
         }
         
         // stack Axis: X
@@ -67,25 +58,6 @@ public class Volume {
         System.out.println("ende");
     }
     
-    /**
-     * this method should be used to sort the texture-planes backToFront
-     * 
-     * @param axis
-     * @param eye
-     * @return sortedMeshList
-     */
-    public List<TriangleMesh> getBackToFrontMeshes(String axis, Vector eye) {
-        List<TriangleMesh> sortedMeshList = new ArrayList<>();
-        List<Integer> sortedIndices = sortStackBackToFront(rootNodes.get(axis), centers.get(axis),
-            eye);
-        for (int i = 0; i < sortedIndices.size(); i++) {
-            int indice = sortedIndices.get(i);
-            TriangleMesh[] triangleMeshAry = (TriangleMesh[]) triangleMeshes.get(axis);
-            sortedMeshList.add(triangleMeshAry[indice]);
-        }
-        return sortedMeshList;
-    }
-    
     /*
      * ----------------------MAINMETHODS--------------------------------------
      */
@@ -93,14 +65,11 @@ public class Volume {
     private void setupTextureStack(GL2 gl, String axis, int resA, int resB) {
         colors.put(axis, createColorArray(axis, resolution.get(axis), resA, resB));
         
-        ITriangleMesh[] triangleMeshAry = createTriangleMesh(axis, resolution.get(axis));
+        TriangleMesh[] triangleMeshAry = createTriangleMesh(axis, resolution.get(axis));
         triangleMeshes.put(axis, triangleMeshAry);
         
         createAndBindTextures(gl, resolution.get(axis), resA, resB,
             triangleMeshes.get(axis), colors.get(axis));
-        
-        rootNodes.put(axis, bspTool.createBspTree(null, centers.get(axis),
-            centerIndices.get(axis)));
     }
     
     private byte[][] createColorArray(String axis, int stackAxis, int resA, int resB) {
@@ -148,16 +117,16 @@ public class Volume {
      * @param centreIndices
      * @return
      */
-    private ITriangleMesh[] createTriangleMesh(String axis, int res) {
+    private TriangleMesh[] createTriangleMesh(String axis, int res) {
         // draft see assets/notes/assignment6_1.JPG
-        ITriangleMesh[] tAry = new TriangleMesh[res];
+        TriangleMesh[] tAry = new TriangleMesh[res];
         List<Vector> centerPoints = new ArrayList<>();
         List<Integer> centerPointIndices = new ArrayList<>();
         for (int i = 0; i < res; i++) {
-            ITriangleMesh tM = new TriangleMesh();
+            TriangleMesh tM = new TriangleMesh();
             Vector[] vectors = createVectorVertices(axis, res, i);
             
-            // Calculate Centre-Point of Plane and add to centrePoint-Array
+            // Calculate Center-Point of Plane and add to centrePoint-Array
             // a + ((d - a) * 0.5) --> connection-vector from a to d cut by a
             // half
             Vector centre = vectors[0].add((vectors[3].subtract(vectors[0])).multiply(0.5));
@@ -183,12 +152,11 @@ public class Volume {
             tAry[i] = tM;
         }
         centers.put(axis, centerPoints);
-        centerIndices.put(axis, centerPointIndices);
         return tAry;
     }
     
     private void createAndBindTextures(GL2 gl, int resAxis, int resA, int resB,
-        ITriangleMesh[] triangleMeshes, byte[][] colors) {
+        TriangleMesh[] triangleMeshes, byte[][] colors) {
         
         // setup
         int[] intary = new int[resAxis];
@@ -273,20 +241,6 @@ public class Volume {
     }
     
     /**
-     * enables this class to proceed back-to-front-sorting for texture-stack
-     * planes
-     * 
-     * @param rootNode
-     * @param points
-     * @param eye
-     * @return
-     */
-    private List<Integer> sortStackBackToFront(BspTreeNode rootNode, List<Vector> points,
-        Vector eye) {
-        return bspTool.getBackToFront(rootNode, points, eye);
-    }
-    
-    /**
      * makes setup easier Resolution might need to be adjusted depending on
      * hardware!
      * 
@@ -341,11 +295,11 @@ public class Volume {
      * ---------------------GETTER & SETTER-------------------------------------
      */
     
-    public Map<String, ITriangleMesh[]> getTriangleMeshes() {
+    public Map<String, TriangleMesh[]> getTriangleMeshes() {
         return triangleMeshes;
     }
     
-    public void setTriangleMeshes(Map<String, ITriangleMesh[]> triangleMeshes) {
+    public void setTriangleMeshes(Map<String, TriangleMesh[]> triangleMeshes) {
         this.triangleMeshes = triangleMeshes;
     }
     
@@ -355,13 +309,5 @@ public class Volume {
     
     public void setCenters(Map<String, List<Vector>> centers) {
         this.centers = centers;
-    }
-    
-    public Map<String, List<Integer>> getCenterIndices() {
-        return centerIndices;
-    }
-    
-    public void setCenterIndices(Map<String, List<Integer>> centerIndices) {
-        this.centerIndices = centerIndices;
     }
 }
